@@ -134,11 +134,23 @@ func (app *Tcpshark) Ticker(refreshTrigger chan bool) {
 	}
 }
 
-func (app *Tcpshark) Refersh(refreshTrigger chan bool) {
+func (app *Tcpshark) Refresh(refreshTrigger chan bool) {
 	for {
 		_, ok := <-refreshTrigger
 		if ok {
 			app.view.Draw()
 		}
+	}
+}
+
+func (app *Tcpshark) Run() {
+	refreshTrigger := make(chan bool)
+
+	go app.PacketListGenerator(refreshTrigger)
+	go app.Ticker(refreshTrigger)
+	go app.Refresh(refreshTrigger)
+
+	if app.view.Run(); err != nil {
+		panic(err)
 	}
 }
