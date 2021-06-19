@@ -154,3 +154,7 @@ func (app *Tcpshark) Run() {
 		panic(err)
 	}
 }
+
+func (app *Tcpshark) Stop() {
+	app.view.Stop()
+}
