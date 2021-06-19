@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/gdamore/tcell"
 	"github.com/google/gopacket"
@@ -95,4 +96,32 @@ func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
 	})
 
 	return app
+}
+
+func (app *Tcpterm) PacketListGenerator(refreshTrigger chan bool) {
+	cnt := 0
+	for {
+		packet, err := app.src.NextPacket()
+		if err == io.EOF {
+			return
+		} else if err == nil {
+			cnt++
+			rowCount := app.table.GetRowCount()
+
+			app.logger.Printf("count: %v start\n", cnt)
+
+			app.table.SetCell(rowCount, 0, tview.NewTableCell(strconv.Itoa(cnt)))
+			app.table.SetCell(rowCount, 1, tview.NewTableCell(packet.Metadata().Timestamp.Format(timestampFormt)))
+			app.table.SetCell(rowCount, 2, tview.NewTableCell(flowOf(packet)))
+			app.table.SetCell(rowCount, 3, tview.NewTableCell(strconv.Itoa(packet.Metadata().Length)))
+			app.table.SetCell(rowCount, 4, tview.NewTableCell(packet.Layers()[1].LayerType().String()))
+			if len(packet.Layers()) > 2 {
+				app.table.SetCell(rowCount, 5, tview.NewTableCell(packet.Layers()[2].LayerType().String()))
+			}
+
+			app.packets = append(app.packets, packet)
+
+			app.logger.Printf("count: %v end\n", cnt)
+		}
+	}
 }
