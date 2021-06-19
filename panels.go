@@ -25,3 +25,9 @@ func preparePacketList() *tview.Table {
 
 	return table
 }
+
+func preparePacketDetail() *tview.TextView {
+	text := tview.NewTextView()
+	text.SetBorder(true).SetTitle("Detail").SetBackgroundColor(tcell.ColorDefault)
+	return text
+}
