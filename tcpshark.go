@@ -1,7 +1,10 @@
 package main
 
 import (
+	"io"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/google/gopacket"
 	"github.com/sachaos/tview"
@@ -41,4 +44,11 @@ func NewTcpStream(src *gopacket.PacketSource, debug bool) *Tcpshark {
 	frame := prepareFrame(layout)
 
 	view.SetRoot(frame, true)
+
+	var w io.Writer
+	if debug {
+		w = os.Stderr
+	} else {
+		w = ioutil.Discard
+	}
 }
