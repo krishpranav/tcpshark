@@ -11,4 +11,5 @@ func preparePacketList() *tview.Table {
 		SetSeparator(tview.GraphicsVertBar)
 	table.SetTitle("Packets").SetBackgroundColor(tcell.ColorDefault).SetBorder(true)
 
+	column := []string{"No.", "Time", "Flow", "Lenght", "Network", "Transport"}
 }
