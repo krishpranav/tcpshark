@@ -31,3 +31,9 @@ func preparePacketDetail() *tview.TextView {
 	text.SetBorder(true).SetTitle("Detail").SetBackgroundColor(tcell.ColorDefault)
 	return text
 }
+
+func preparePacketDump() *tview.TextView {
+	text := tview.NewTextView()
+	text.SetBorder(true).SetTitle("Dump").SetBackgroundColor(tcell.ColorDefault)
+	return text
+}
