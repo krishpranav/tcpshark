@@ -156,6 +156,7 @@ func (app *Tcpshark) Run() {
 	if app.view.Run(); err != nil {
 		panic(err)
 	}
+
 }
 
 func (app *Tcpshark) Stop() {
