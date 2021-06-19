@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/google/gopacket"
@@ -25,6 +27,7 @@ func findDevice(c *cli.Context) string {
 	if err != nil {
 		panic(err)
 	}
+
 	return devices[0].Name
 }
 
@@ -35,6 +38,7 @@ func createHandle(c *cli.Context) (*pcap.Handle, error) {
 	} else {
 		device := findDevice(c)
 		return pcap.OpenLive(device, snapshot_len, promiscuous, timeout)
+
 	}
 }
 
@@ -50,5 +54,46 @@ func findSource(c *cli.Context) (*gopacket.PacketSource, func()) {
 			log.Fatal(err)
 		}
 	}
+
 	return gopacket.NewPacketSource(handle, handle.LinkType()), handle.Close
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "tcpterm"
+	app.Usage = "tcpdump for hackers"
+	app.Version = "1.0.0"
+
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "interface, i",
+			Usage: "If unspecified, use lowest numbered interface.",
+		},
+		cli.StringFlag{
+			Name:  "read, r",
+			Usage: "Read packets from pcap file.",
+		},
+		cli.StringFlag{
+			Name:  "filter, f",
+			Usage: "BPF Filter",
+		},
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "debug mode.",
+		},
+	}
+
+	app.Action = func(c *cli.Context) error {
+		packetSource, close := findSource(c)
+		defer close()
+
+		tcpterm := NewTcpshark(packetSource, c.Bool("debug"))
+		tcpterm.Run()
+		return nil
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
 }
