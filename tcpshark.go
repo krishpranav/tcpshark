@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gdamore/tcell"
 	"github.com/google/gopacket"
@@ -123,5 +124,12 @@ func (app *Tcpterm) PacketListGenerator(refreshTrigger chan bool) {
 
 			app.logger.Printf("count: %v end\n", cnt)
 		}
+	}
+}
+
+func (app *Tcpshark) Ticker(refreshTrigger chan bool) {
+	for {
+		time.Sleep(100 * time.Millisecond)
+		refreshTrigger <- true
 	}
 }
