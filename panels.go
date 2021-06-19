@@ -9,7 +9,19 @@ func preparePacketList() *tview.Table {
 	table := tview.NewTable().
 		SetBorders(false).
 		SetSeparator(tview.GraphicsVertBar)
-	table.SetTitle("Packets").SetBackgroundColor(tcell.ColorDefault).SetBorder(true)
+	table.SetTitle("Packets").
+		SetBackgroundColor(tcell.ColorDefault).
+		SetBorder(true)
 
-	column := []string{"No.", "Time", "Flow", "Lenght", "Network", "Transport"}
+	columns := []string{"No.", "Time", "Flow", "Length", "Network", "Transport"}
+	for i, column := range columns {
+		table.SetCell(0, i,
+			tview.NewTableCell(column).
+				SetTextColor(tcell.ColorYellow).
+				SetSelectable(false),
+		)
+	}
+	table.SetFixed(1, 1)
+
+	return table
 }
