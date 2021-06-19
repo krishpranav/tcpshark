@@ -1,12 +1,15 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"io/ioutil"
 
 	"github.com/gdamore/tcell"
 	"github.com/google/gopacket"
@@ -36,7 +39,7 @@ const (
 	timestampFormt = "2006-01-02 15:04:05.000000"
 )
 
-func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
+func NewTcpshark(src *gopacket.PacketSource, debug bool) *Tcpshark {
 	view := tview.NewApplication()
 
 	packetList := preparePacketList()
@@ -59,7 +62,7 @@ func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
 		w = ioutil.Discard
 	}
 
-	app := &Tcpterm{
+	app := &Tcpshark{
 		src:        src,
 		view:       view,
 		primitives: []tview.Primitive{packetList, packetDetail, packetDump},
@@ -67,7 +70,7 @@ func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
 		detail:     packetDetail,
 		dump:       packetDump,
 		frame:      frame,
-		logger:     log.New(w, "[tcpterm]", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
+		logger:     log.New(w, "[Tcpshark]", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 	app.SwitchToTailMode()
 
@@ -99,7 +102,7 @@ func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
 	return app
 }
 
-func (app *Tcpterm) PacketListGenerator(refreshTrigger chan bool) {
+func (app *Tcpshark) PacketListGenerator(refreshTrigger chan bool) {
 	cnt := 0
 	for {
 		packet, err := app.src.NextPacket()
@@ -157,4 +160,71 @@ func (app *Tcpshark) Run() {
 
 func (app *Tcpshark) Stop() {
 	app.view.Stop()
+}
+
+func (app *Tcpshark) SwitchToTailMode() {
+	app.mode = TailMode
+
+	app.table.SetSelectable(false, false)
+	app.table.ScrollToEnd()
+
+	app.frame.Clear().AddText("**Tail**", true, tview.AlignLeft, tcell.ColorGreen)
+
+	app.frame.AddText("g: page top, G: page end, TAB: rotate panel, Enter: Detail mode", true, tview.AlignRight, tcell.ColorDefault)
+}
+
+func (app *Tcpshark) SwitchToSelectMode() {
+	app.mode = SelectMode
+
+	app.table.SetSelectable(true, false)
+	row, _ := app.table.GetOffset()
+	app.table.Select(row+1, 0)
+	app.displayDetailOf(row + 1)
+
+	app.frame.Clear().AddText("*Detail*", true, tview.AlignLeft, tcell.ColorBlue)
+	app.frame.AddText("g: page top, G: page end, TAB: rotate panel, ESC: Tail mode", true, tview.AlignRight, tcell.ColorDefault)
+}
+
+func (app *Tcpshark) displayDetailOf(row int) {
+	if row < 1 || row > len(app.packets) {
+		return
+	}
+
+	app.detail.Clear().ScrollToBeginning()
+	app.dump.Clear().ScrollToBeginning()
+
+	packet := app.packets[row-1]
+
+	fmt.Fprint(app.detail, packet.String())
+	fmt.Fprint(app.dump, packet.Dump())
+}
+
+func (app *Tcpshark) rotateView() {
+	idx, err := app.findPrimitiveIdx(app.view.GetFocus())
+	if err != nil {
+		panic(err)
+	}
+
+	nextIdx := idx + 1
+	if nextIdx >= len(app.primitives) {
+		nextIdx = 0
+	}
+	app.view.SetFocus(app.primitives[nextIdx])
+}
+
+func (app *Tcpshark) findPrimitiveIdx(p tview.Primitive) (int, error) {
+	for i, primitive := range app.primitives {
+		if p == primitive {
+			return i, nil
+		}
+	}
+	return 0, errors.New("Primitive not found")
+}
+
+func flowOf(packet gopacket.Packet) string {
+	if packet.NetworkLayer() == nil {
+		return "-"
+	} else {
+		return packet.NetworkLayer().NetworkFlow().String()
+	}
 }
