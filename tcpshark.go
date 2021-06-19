@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gdamore/tcell"
 	"github.com/google/gopacket"
 	"github.com/sachaos/tview"
 )
@@ -33,17 +34,21 @@ const (
 	timestampFormt = "2006-01-02 15:04:05.000000"
 )
 
-func NewTcpStream(src *gopacket.PacketSource, debug bool) *Tcpshark {
+func NewTcpterm(src *gopacket.PacketSource, debug bool) *Tcpterm {
 	view := tview.NewApplication()
 
 	packetList := preparePacketList()
 	packetDetail := preparePacketDetail()
 	packetDump := preparePacketDump()
 
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(packetList, 0, 1, true).AddItem(packetDetail, 0, 1, false).AddItem(packetDump, 0, 1, true)
+	layout := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(packetList, 0, 1, true).
+		AddItem(packetDetail, 0, 1, false).
+		AddItem(packetDump, 0, 1, false)
 	frame := prepareFrame(layout)
 
-	view.SetRoot(frame, true)
+	view.SetRoot(frame, true).SetFocus(packetList)
 
 	var w io.Writer
 	if debug {
@@ -51,4 +56,43 @@ func NewTcpStream(src *gopacket.PacketSource, debug bool) *Tcpshark {
 	} else {
 		w = ioutil.Discard
 	}
+
+	app := &Tcpterm{
+		src:        src,
+		view:       view,
+		primitives: []tview.Primitive{packetList, packetDetail, packetDump},
+		table:      packetList,
+		detail:     packetDetail,
+		dump:       packetDump,
+		frame:      frame,
+		logger:     log.New(w, "[tcpterm]", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
+	}
+	app.SwitchToTailMode()
+
+	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyCtrlC {
+			app.Stop()
+		}
+
+		if event.Key() == tcell.KeyTAB {
+			app.rotateView()
+		}
+		return event
+	})
+
+	packetList.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEsc {
+			app.SwitchToTailMode()
+		}
+
+		if key == tcell.KeyEnter {
+			app.SwitchToSelectMode()
+		}
+	})
+
+	packetList.SetSelectionChangedFunc(func(row int, column int) {
+		app.displayDetailOf(row)
+	})
+
+	return app
 }
