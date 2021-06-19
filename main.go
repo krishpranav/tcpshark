@@ -25,3 +25,13 @@ func findDevice(c *cli.Context) string {
 	}
 	return devices[0].Name
 }
+
+func createHandle(c *cli.Context) (*pcap.Handle, error) {
+	fileName := c.String("read")
+	if fileName != "" {
+		return pcap.OpenOffline(fileName)
+	} else {
+		device := findDevice(c)
+		return pcap.OpenLive(device, snapshot_len, promiscuous, timeout)
+	}
+}
