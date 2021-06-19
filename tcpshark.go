@@ -133,3 +133,12 @@ func (app *Tcpshark) Ticker(refreshTrigger chan bool) {
 		refreshTrigger <- true
 	}
 }
+
+func (app *Tcpshark) Refersh(refreshTrigger chan bool) {
+	for {
+		_, ok := <-refreshTrigger
+		if ok {
+			app.view.Draw()
+		}
+	}
+}
