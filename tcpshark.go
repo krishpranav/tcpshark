@@ -29,3 +29,16 @@ type Tcpshark struct {
 const (
 	timestampFormt = "2006-01-02 15:04:05.000000"
 )
+
+func NewTcpStream(src *gopacket.PacketSource, debug bool) *Tcpshark {
+	view := tview.NewApplication()
+
+	packetList := preparePacketList()
+	packetDetail := preparePacketDetail()
+	packetDump := preparePacketDump()
+
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(packetList, 0, 1, true).AddItem(packetDetail, 0, 1, false).AddItem(packetDump, 0, 1, true)
+	frame := prepareFrame(layout)
+
+	view.SetRoot(frame, true)
+}
