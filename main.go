@@ -1,8 +1,10 @@
 package main
 
 import (
+	"log"
 	"time"
 
+	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 	"github.com/urfave/cli"
 )
@@ -34,4 +36,19 @@ func createHandle(c *cli.Context) (*pcap.Handle, error) {
 		device := findDevice(c)
 		return pcap.OpenLive(device, snapshot_len, promiscuous, timeout)
 	}
+}
+
+func findSource(c *cli.Context) (*gopacket.PacketSource, func()) {
+	handle, err := createHandle(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if c.String("filter") != "" {
+		err := handle.SetBPFFilter(c.String("filter"))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return gopacket.NewPacketSource(handle, handle.LinkType()), handle.Close
 }
